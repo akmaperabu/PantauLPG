@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PantauLPG - Monitoring & Mutasi Pinjaman Tabung</title>
+  <link rel="icon" type="image/png" href="Logo.png">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="bg-[#f8fafc] text-slate-800 min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- TOP NAVIGATION BAR (LIGHT THEME SENADA DENGAN KONTEN) -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+
+      <!-- Logo & Brand -->
+      <div class="flex items-center gap-3 cursor-pointer shrink-0" onclick="navigateToList()">
+        <div
+          class="w-9 h-9 rounded-xl bg-blue-50/80 p-1 flex items-center justify-center shadow-xs border border-blue-100 overflow-hidden shrink-0">
+          <img src="Logo.png" alt="PantauLPG" class="w-full h-full object-contain">
+        </div>
+        <h1 class="font-bold text-base tracking-tight text-slate-900 select-none">
+          Pantau<span class="text-blue-600">LPG</span>
+        </h1>
+      </div>
+
+      <!-- Center Global Search Input (Shortcut Cmd/Ctrl + K) -->
+      <div class="flex-1 max-w-lg hidden md:block">
+        <div class="relative flex items-center">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none"></i>
+          <input type="text" id="globalSearchInput" placeholder="Cari customer, nomor SJ, atau nama barang..."
+            oninput="handleGlobalSearch(this.value)"
+            class="w-full pl-10 pr-14 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white text-xs text-slate-800 placeholder-slate-400 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition">
+          <div class="absolute right-2.5 flex items-center pointer-events-none">
+            <kbd
+              class="px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-400 bg-white border border-slate-200 rounded shadow-xs">⌘
+              K</kbd>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Action Buttons -->
+      <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
+
+        <button onclick="openModal('modalAddCustomer')"
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 transition shadow-xs">
+          <i data-lucide="plus" class="w-3.5 h-3.5 text-slate-500"></i>
+          <span>Customer</span>
+        </button>
+        <button onclick="openModal('modalAddTransaction')"
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-500/20 transition">
+          <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-white"></i>
+          <span>Catat Transaksi</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- VIEW 1: REKAP DAFTAR CUSTOMER (MIRIP GAMBAR CONTOH) -->
+    <section id="viewSummary" class="transition-all duration-200">
+
+      <!-- STATS SUMMARY CARDS (4 KOTAK LANGSUNG 1 BARIS DI HP TANPA GESER) -->
+      <div class="grid grid-cols-4 gap-2 sm:gap-4 mb-6">
+
+        <!-- Card 1: Total Customer -->
+        <div
+          class="bg-white p-2.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-center sm:items-center text-center sm:text-left gap-1 sm:gap-4">
+          <div
+            class="hidden sm:flex w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 text-slate-600 items-center justify-center shrink-0">
+            <i data-lucide="users" class="w-5 h-5"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-[10px] sm:text-xs font-medium text-slate-500 truncate leading-tight">Total Customer</p>
+            <h3 id="statTotalCustomer" class="text-base sm:text-2xl font-bold text-slate-900 tracking-tight mt-0.5">0
+            </h3>
+          </div>
+        </div>
+
+        <!-- Card 2: Total Terkirim -->
+        <div
+          class="bg-white p-2.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-center sm:items-center text-center sm:text-left gap-1 sm:gap-4">
+          <div
+            class="hidden sm:flex w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 text-slate-700 items-center justify-center shrink-0">
+            <i data-lucide="arrow-up-right" class="w-5 h-5"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-[10px] sm:text-xs font-medium text-slate-500 truncate leading-tight">Total Kirim</p>
+            <h3 id="statTotalSent" class="text-base sm:text-2xl font-bold text-slate-900 tracking-tight mt-0.5">0</h3>
+          </div>
+        </div>
+
+        <!-- Card 3: Total Kembali -->
+        <div
+          class="bg-white p-2.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-center sm:items-center text-center sm:text-left gap-1 sm:gap-4">
+          <div
+            class="hidden sm:flex w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 text-slate-700 items-center justify-center shrink-0">
+            <i data-lucide="corner-down-left" class="w-5 h-5"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-[10px] sm:text-xs font-medium text-slate-500 truncate leading-tight">Total Kembali</p>
+            <h3 id="statTotalReturned" class="text-base sm:text-2xl font-bold text-slate-900 tracking-tight mt-0.5">0
+            </h3>
+          </div>
+        </div>
+
+        <!-- Card 4: Sisa Pinjaman Aktif -->
+        <div
+          class="bg-white p-2.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-center sm:items-center text-center sm:text-left gap-1 sm:gap-4">
+          <div
+            class="hidden sm:flex w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 text-slate-700 items-center justify-center shrink-0">
+            <i data-lucide="clock" class="w-5 h-5"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-[10px] sm:text-xs font-medium text-slate-500 truncate leading-tight">Sisa Pinjaman</p>
+            <h3 id="statTotalBalance" class="text-base sm:text-2xl font-bold text-slate-900 tracking-tight mt-0.5">0
+            </h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABLE CONTAINER CARD -->
+      <div class="bg-white rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+
+        <!-- Filter and Search Header Bar -->
+        <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+
+          <!-- Search Customer Input -->
+          <div class="relative w-full sm:w-96">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <i data-lucide="search" class="w-4 h-4"></i>
+            </span>
+            <input type="text" id="searchInput" placeholder="Cari nama customer..." oninput="handleSearch()"
+              class="w-full pl-10 pr-4 py-2 bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200 rounded-lg text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition">
+          </div>
+
+          <!-- Status Sisa Filter Dropdown -->
+          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <select id="statusFilter" onchange="renderCustomerList()"
+              class="px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer">
+              <option value="all">Semua Status Sisa</option>
+              <option value="has_balance">Masih Ada Sisa (&gt; 0)</option>
+              <option value="settled">Lunas / Selesai (= 0)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-100 bg-white">
+                <th scope="col" class="px-5 py-3.5 font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+                  Nama Customer</th>
+                <th scope="col"
+                  class="px-5 py-3.5 font-semibold text-slate-400 uppercase tracking-wider text-[11px] text-center">
+                  Tanggal Terakhir</th>
+                <th scope="col"
+                  class="px-5 py-3.5 font-semibold text-slate-400 uppercase tracking-wider text-[11px] text-center">
+                  Jumlah Dikirim</th>
+                <th scope="col"
+                  class="px-5 py-3.5 font-semibold text-slate-400 uppercase tracking-wider text-[11px] text-center">
+                  Jumlah Kembali</th>
+                <th scope="col"
+                  class="px-5 py-3.5 font-semibold text-slate-400 uppercase tracking-wider text-[11px] text-center">Sisa
+                </th>
+                <th scope="col" class="px-5 py-3.5 font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+                  Keterangan / Catatan</th>
+                <th scope="col"
+                  class="px-5 py-3.5 font-semibold text-slate-400 uppercase tracking-wider text-[11px] text-right">Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody id="customerTableBody" class="divide-y divide-slate-100">
+              <!-- Baris data di-render melalui JavaScript -->
+            </tbody>
+          </table>
+        </div>
+
+
+        <!-- Table Pagination Footer (Persis seperti di gambar) -->
+        <div
+          class="px-5 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+          <div>
+            Showing <span id="paginationStart" class="font-medium text-slate-700">1</span> to <span id="paginationEnd"
+              class="font-medium text-slate-700">10</span> of <span id="paginationTotal"
+              class="font-medium text-slate-700">16</span> entries
+          </div>
+
+          <div class="flex items-center gap-6">
+            <!-- Page Number Controls -->
+            <div id="paginationControls" class="flex items-center gap-1">
+              <!-- Di-render oleh JavaScript -->
+            </div>
+
+            <!-- Rows per page selector -->
+            <div class="flex items-center gap-2">
+              <span class="text-slate-500 text-xs">Rows per page</span>
+              <select id="rowsPerPageSelect" onchange="handleRowsPerPageChange(this.value)"
+                class="px-2.5 py-1 bg-white border border-slate-200 rounded-md text-xs font-medium text-slate-700 hover:border-slate-300 focus:outline-none cursor-pointer">
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="all">Semua</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 2: DETAIL MUTASI CUSTOMER (LEBIH MODERN & BERSIH) -->
+    <section id="viewDetail" class="hidden transition-all duration-200">
+
+      <!-- Back Navigation & Action Bar -->
+      <div class="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <button onclick="navigateToList()"
+          class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 rounded-lg hover:bg-slate-50 transition shadow-xs w-fit">
+          <i data-lucide="arrow-left" class="w-4 h-4 text-slate-500"></i>
+          <span>Kembali ke Daftar Customer</span>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <button onclick="printCustomerReport()"
+            class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 rounded-lg hover:bg-slate-50 transition shadow-xs">
+            <i data-lucide="printer" class="w-4 h-4 text-slate-600"></i>
+            <span>Cetak Rekap / PDF</span>
+          </button>
+          <button onclick="openQuickAddMutationModal()"
+            class="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Catat Mutasi Customer Ini</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Detail Customer Overview Card -->
+      <div class="bg-white rounded-xl border border-slate-200/90 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] mb-6">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5">
+          <div>
+            <div class="flex flex-wrap items-center gap-3">
+              <h2 id="detailCustomerName" class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Nama
+                Customer</h2>
+              <span id="detailBadgeStatus"
+                class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700">Status</span>
+            </div>
+            <p id="detailCustomerNote" class="text-xs text-slate-500 mt-1.5">Catatan: -</p>
+          </div>
+
+          <!-- Mini Stats Table Overview -->
+          <div
+            class="bg-slate-50 border border-slate-200/70 rounded-xl p-3 grid grid-cols-4 gap-4 text-center min-w-[320px] w-full lg:w-auto">
+            <div>
+              <span class="text-[10px] font-semibold text-slate-400 block uppercase tracking-wider">Tanggal
+                Terakhir</span>
+              <span id="detailMiniLastDate" class="font-medium text-xs text-slate-700 mt-1 block">-</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-semibold text-slate-400 block uppercase tracking-wider">Total Kirim</span>
+              <span id="detailMiniSent" class="font-bold text-sm text-slate-900 mt-1 block">0</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-semibold text-slate-400 block uppercase tracking-wider">Total Kembali</span>
+              <span id="detailMiniReturned" class="font-bold text-sm text-slate-900 mt-1 block">0</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-semibold text-slate-400 block uppercase tracking-wider">Sisa Berjalan</span>
+              <span id="detailMiniBalance" class="font-bold text-sm text-amber-600 mt-1 block">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mutasi Table Card -->
+      <div class="bg-white rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-white">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
+              <i data-lucide="history" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="text-xs font-bold text-slate-900">Riwayat Surat Jalan & Mutasi</h3>
+              <p class="text-[11px] text-slate-400">Urutan kronologis transaksi pengiriman dan pengembalian</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-100 bg-white">
+                <th scope="col" class="px-5 py-3 font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+                  Tanggal</th>
+                <th scope="col" class="px-5 py-3 font-semibold text-slate-400 uppercase tracking-wider text-[11px]">No
+                  Surat Jalan (SJ)</th>
+                <th scope="col"
+                  class="px-5 py-3 font-semibold text-slate-400 uppercase tracking-wider text-[11px] text-center">
+                  Dikirim (+)</th>
+                <th scope="col"
+                  class="px-5 py-3 font-semibold text-slate-400 uppercase tracking-wider text-[11px] text-center">
+                  Kembali (-)</th>
+                <th scope="col"
+                  class="px-5 py-3 font-semibold text-slate-400 uppercase tracking-wider text-[11px] text-center">Sisa
+                  Berjalan</th>
+                <th scope="col" class="px-5 py-3 font-semibold text-slate-400 uppercase tracking-wider text-[11px]">
+                  Keterangan</th>
+                <th scope="col"
+                  class="px-5 py-3 font-semibold text-slate-400 uppercase tracking-wider text-[11px] text-center">Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody id="detailMutationTableBody" class="divide-y divide-slate-100">
+              <!-- Riwayat per customer -->
+            </tbody>
+          </table>
+        </div>
+
+
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: TAMBAH CUSTOMER BARU -->
+  <div id="modalAddCustomer"
+    class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div
+      class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 overflow-hidden transition-all transform scale-100">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 class="font-bold text-slate-900 text-sm">Tambah Customer Baru</h3>
+        <button onclick="closeModal('modalAddCustomer')"
+          class="text-slate-400 hover:text-slate-600 p-1 rounded-md transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <form onsubmit="handleSaveCustomer(event)" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nama Customer / Perusahaan <span
+              class="text-rose-500">*</span></label>
+          <input type="text" id="custNameInput" required placeholder="Contoh: UD. MULTI GAS"
+            class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Catatan Tambahan (Opsional)</label>
+          <input type="text" id="custNoteInput" placeholder="Contoh: (2 btl pernah beli) / Lokasi gudang"
+            class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition">
+        </div>
+        <div class="flex items-center justify-end gap-2.5 pt-3">
+          <button type="button" onclick="closeModal('modalAddCustomer')"
+            class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Batal</button>
+          <button type="submit"
+            class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition">Simpan
+            Customer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CATAT TRANSAKSI / MUTASI -->
+  <div id="modalAddTransaction"
+    class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div
+      class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 overflow-hidden transition-all transform scale-100">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 class="font-bold text-slate-900 text-sm">Catat Transaksi (Kirim / Kembali)</h3>
+        <button onclick="closeModal('modalAddTransaction')"
+          class="text-slate-400 hover:text-slate-600 p-1 rounded-md transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <form onsubmit="handleSaveTransaction(event)" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Pilih Customer <span
+              class="text-rose-500">*</span></label>
+          <select id="txCustomerId" required
+            class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none bg-white transition cursor-pointer">
+            <option value="">-- Pilih Customer --</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Tanggal <span
+                class="text-rose-500">*</span></label>
+            <input type="date" id="txDate" required
+              class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">No Surat Jalan (SJ)</label>
+            <input type="text" id="txNoSJ" placeholder="Contoh: 19697"
+              class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+              <span>Dikirim (Tabung Isi)</span>
+            </label>
+            <input type="number" id="txSent" min="0" value="0" placeholder="0" oninput="updateTxBalancePreview()"
+              class="w-full px-3.5 py-2 text-xs font-bold text-slate-900 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+              <span>Kembali (Kosongan)</span>
+            </label>
+            <input type="number" id="txReturned" min="0" value="0" placeholder="0" oninput="updateTxBalancePreview()"
+              class="w-full px-3.5 py-2 text-xs font-bold text-slate-900 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition">
+          </div>
+        </div>
+
+        <!-- Live Impact / Preview Selisih -->
+        <div id="txBalancePreviewBox"
+          class="bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 flex items-center justify-between text-xs">
+          <span class="text-slate-500 font-medium">Sisa Pinjaman:</span>
+          <span id="txBalancePreviewText" class="font-bold text-slate-400">0</span>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Keterangan Tambahan</label>
+          <input type="text" id="txNote" placeholder="Cth: Driver Pak Joko / LPG 50kg"
+            class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition">
+        </div>
+        <div class="flex items-center justify-end gap-2.5 pt-3">
+          <button type="button" onclick="closeModal('modalAddTransaction')"
+            class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Batal</button>
+          <button type="submit"
+            class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition">Simpan
+            Transaksi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- PRINTABLE TEMPLATE: LAPORAN PINJAMAN TABUNG PELANGGAN (SIMPLE SEPERTI CONTOH) -->
+  <div id="printableCustomerReport" class="hidden text-slate-900 bg-white font-sans p-6">
+
+    <!-- Title Centered Header -->
+    <div class="text-center mb-6">
+      <h1 class="text-lg font-bold text-slate-900 tracking-tight">
+        Laporan Pinjaman Tabung LPG - Pelanggan: <span id="printCustomerName" class="font-bold">NAMA CUSTOMER</span>
+      </h1>
+      <div class="text-xs text-slate-700 mt-2 space-y-0.5">
+        <p class="font-medium text-slate-800">Laporan Mutasi LPG</p>
+        <p class="text-slate-600">| OKG PantauLPG</p>
+      </div>
+    </div>
+
+    <!-- Simple Table with Dark Header Bar (Mirip Contoh Gambar) -->
+    <div class="mb-4">
+      <table class="w-full text-xs text-left border-collapse print-table">
+        <thead>
+          <tr class="bg-[#1e293b] text-white font-bold text-[11px]">
+            <th class="px-3 py-2 text-center w-8">No</th>
+            <th class="px-3 py-2 text-center w-24">Tanggal</th>
+            <th class="px-3 py-2 w-32">No Surat Jalan (SJ)</th>
+            <th class="px-3 py-2 text-center w-20">Kirim (+)</th>
+            <th class="px-3 py-2 text-center w-20">Kembali (-)</th>
+            <th class="px-3 py-2 text-center w-24">Sisa Berjalan</th>
+            <th class="px-3 py-2">Keterangan</th>
+          </tr>
+        </thead>
+        <tbody id="printTableBody" class="divide-y divide-slate-200">
+          <!-- Diisi via JavaScript -->
+        </tbody>
+        <tfoot id="printTableFoot" class="border-t-2 border-slate-700 bg-slate-50 font-bold text-xs">
+          <!-- Baris total diisi JS -->
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- Tanggal Cetak Kanan Bawah -->
+    <div class="text-right text-xs text-slate-600 pt-3">
+      Tanggal Cetak: <span id="printDate">16/10/2026</span>
+    </div>
+
+  </div>
+
+  <!-- JavaScript Modules -->
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>
