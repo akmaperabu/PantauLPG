@@ -158,13 +158,13 @@ function updateSyncStatus(status, text) {
   if (!badge) return;
 
   if (status === 'syncing') {
-    badge.className = 'hidden lg:flex items-center gap-1.5 text-[11px] text-blue-700 font-medium bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full transition';
+    badge.className = 'hidden sm:flex items-center gap-1.5 text-[11px] text-blue-700 font-medium bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full transition';
     badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span><span>${text || 'Menyimpan...'}</span>`;
   } else if (status === 'synced') {
-    badge.className = 'hidden lg:flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full transition';
+    badge.className = 'hidden sm:flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full transition';
     badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span>${text || 'GSheet Terhubung'}</span>`;
   } else if (status === 'error') {
-    badge.className = 'hidden lg:flex items-center gap-1.5 text-[11px] text-amber-700 font-medium bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full transition';
+    badge.className = 'hidden sm:flex items-center gap-1.5 text-[11px] text-amber-700 font-medium bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full transition';
     badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span><span>${text || 'Mode Offline'}</span>`;
   }
 }
@@ -452,64 +452,59 @@ function renderCustomerList() {
   paginatedData.forEach((cust) => {
     const stats = calculateCustomerStats(cust.id);
 
-    // Badge sisa styling (0 = abu-abu pill, > 0 = kuning/amber pill)
-    let sisaBadgeHtml = "";
-    if (stats.balance === 0) {
-      sisaBadgeHtml = `<span class="inline-flex items-center justify-center min-w-[28px] h-6 px-2.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-500">0</span>`;
-    } else if (stats.balance > 0) {
-      sisaBadgeHtml = `<span class="inline-flex items-center justify-center min-w-[28px] h-6 px-2.5 text-xs font-bold rounded-full bg-[#fef3c7] text-[#d97706]">${stats.balance}</span>`;
-    } else {
-      sisaBadgeHtml = `<span class="inline-flex items-center justify-center min-w-[28px] h-6 px-2.5 text-xs font-bold rounded-full bg-rose-100 text-rose-700">${stats.balance}</span>`;
-    }
+    // Clean neutral badge sisa (Monochrome, no bright colors)
+    const sisaBadgeHtml = `<span class="inline-flex items-center justify-center min-w-[28px] h-6 px-2 text-xs font-semibold rounded bg-slate-100 text-slate-700 border border-slate-200/70">${stats.balance}</span>`;
 
-    // 1. Tampilan Desktop Table
+    // 1. Tampilan Desktop Table (Clean ERP Style)
     if (tbody) {
       const tr = document.createElement('tr');
       tr.className = "hover:bg-slate-50/70 transition border-b border-slate-100 group";
       tr.innerHTML = `
         <td class="px-5 py-3.5">
-          <button onclick="viewCustomerDetail('${cust.id}')" class="font-bold text-blue-600 hover:text-blue-700 hover:underline text-left text-xs uppercase tracking-tight">
+          <button onclick="viewCustomerDetail('${cust.id}')" class="font-semibold text-slate-800 hover:text-slate-950 hover:underline text-left text-xs uppercase tracking-tight transition">
             ${cust.name}
           </button>
         </td>
-        <td class="px-5 py-3.5 text-center text-slate-600 text-xs font-normal">
+        <td class="px-5 py-3.5 text-center text-slate-600 text-xs font-normal whitespace-nowrap">
           ${formatDate(stats.lastDate)}
         </td>
-        <td class="px-5 py-3.5 text-center font-bold text-slate-900 text-xs">
+        <td class="px-5 py-3.5 text-center font-medium text-slate-800 text-xs">
           ${stats.totalSent}
         </td>
-        <td class="px-5 py-3.5 text-center font-medium text-slate-700 text-xs">
+        <td class="px-5 py-3.5 text-center font-medium text-slate-600 text-xs">
           ${stats.totalReturned}
         </td>
         <td class="px-5 py-3.5 text-center">
           ${sisaBadgeHtml}
         </td>
-        <td class="px-5 py-3.5 text-xs text-slate-400">
+        <td class="px-5 py-3.5 text-xs text-slate-500 max-w-xs truncate">
           ${cust.notes || '-'}
         </td>
         <td class="px-5 py-3.5 text-right whitespace-nowrap">
-          <button onclick="printCustomerReport('${cust.id}')" class="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg transition inline-flex items-center mr-1" title="Cetak Rekap / PDF">
-            <i data-lucide="printer" class="w-4 h-4"></i>
-          </button>
-          <button onclick="viewCustomerDetail('${cust.id}')" class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition inline-flex items-center gap-1 mr-1">
-            Buka Transaksi &rarr;
-          </button>
-          <button onclick="deleteCustomer('${cust.id}')" class="delete-btn p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition inline-flex items-center" title="Hapus Customer">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-          </button>
+          <div class="inline-flex items-center justify-end gap-1">
+            <button onclick="viewCustomerDetail('${cust.id}')" class="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-md transition" title="Buka Detail Mutasi">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+            <button onclick="printCustomerReport('${cust.id}')" class="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-md transition" title="Cetak Rekap">
+              <i data-lucide="printer" class="w-4 h-4"></i>
+            </button>
+            <button onclick="deleteCustomer('${cust.id}')" class="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-md transition" title="Hapus Customer">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
         </td>
       `;
       tbody.appendChild(tr);
     }
 
-    // 2. Tampilan Khusus Layar HP (Mobile Card Feed)
+    // 2. Tampilan Khusus Layar HP (Mobile Card Feed - Clean Neutral)
     if (mobileList) {
       const card = document.createElement('div');
       card.className = "p-3.5 hover:bg-slate-50/70 transition space-y-2.5";
       card.innerHTML = `
         <div class="flex items-start justify-between gap-2.5">
           <div class="min-w-0 flex-1">
-            <button onclick="viewCustomerDetail('${cust.id}')" class="font-bold text-slate-900 hover:text-blue-600 text-left text-sm tracking-tight truncate block w-full">
+            <button onclick="viewCustomerDetail('${cust.id}')" class="font-semibold text-slate-900 hover:underline text-left text-sm tracking-tight truncate block w-full">
               ${cust.name}
             </button>
             <p class="text-[11px] text-slate-400 mt-0.5 truncate">${cust.notes || 'Tidak ada catatan'}</p>
@@ -523,11 +518,11 @@ function renderCustomerList() {
         <div class="grid grid-cols-3 gap-1.5 p-2 rounded-lg bg-slate-50/90 border border-slate-100 text-center">
           <div>
             <span class="text-[9px] font-semibold text-slate-400 block uppercase tracking-wider">Kirim</span>
-            <span class="text-xs font-bold text-slate-900 mt-0.5 block">${stats.totalSent}</span>
+            <span class="text-xs font-semibold text-slate-800 mt-0.5 block">${stats.totalSent}</span>
           </div>
           <div class="border-x border-slate-200/70">
             <span class="text-[9px] font-semibold text-slate-400 block uppercase tracking-wider">Kembali</span>
-            <span class="text-xs font-semibold text-slate-700 mt-0.5 block">${stats.totalReturned}</span>
+            <span class="text-xs font-medium text-slate-600 mt-0.5 block">${stats.totalReturned}</span>
           </div>
           <div>
             <span class="text-[9px] font-semibold text-slate-400 block uppercase tracking-wider">Terakhir</span>
@@ -535,16 +530,16 @@ function renderCustomerList() {
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-2 pt-0.5">
-          <button onclick="viewCustomerDetail('${cust.id}')" class="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50/80 hover:bg-blue-100 transition">
-            <span>Buka Transaksi </span>
-            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+        <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+          <button onclick="viewCustomerDetail('${cust.id}')" class="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition">
+            <span>Buka Riwayat Mutasi</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-400"></i>
           </button>
           <div class="flex items-center gap-1 shrink-0">
-            <button onclick="printCustomerReport('${cust.id}')" class="p-1.5 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition" title="Cetak Rekap">
+            <button onclick="printCustomerReport('${cust.id}')" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition" title="Cetak Rekap">
               <i data-lucide="printer" class="w-4 h-4"></i>
             </button>
-            <button onclick="deleteCustomer('${cust.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Hapus Customer">
+            <button onclick="deleteCustomer('${cust.id}')" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition" title="Hapus Customer">
               <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
           </div>
@@ -676,13 +671,8 @@ function viewCustomerDetail(customerId) {
 
   const badge = document.getElementById('detailBadgeStatus');
   if (badge) {
-    if (stats.balance === 0) {
-      badge.className = "px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80";
-      badge.innerText = "Lunas / Tidak Ada Sisa Pinjaman";
-    } else {
-      badge.className = "px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200/80";
-      badge.innerText = `Ada Sisa: ${stats.balance} item`;
-    }
+    badge.className = "px-2.5 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-700 border border-slate-200/80";
+    badge.innerText = stats.balance === 0 ? "Lunas / Tidak Ada Sisa Pinjaman" : `Sisa Pinjaman: ${stats.balance} item`;
   }
 
   // Ambil transaksi customer ini dan urutkan tanggal
@@ -721,32 +711,31 @@ function viewCustomerDetail(customerId) {
     const returned = Number(tx.returned || 0);
     runningBalance += (sent - returned);
 
-    // 1. Tampilan Desktop Table
+    // 1. Tampilan Desktop Table (Clean ERP Style)
     if (tbody) {
       const tr = document.createElement('tr');
-      tr.className = "hover:bg-slate-50/60 transition border-b border-slate-100";
+      tr.className = "hover:bg-slate-50/70 transition border-b border-slate-100";
       tr.innerHTML = `
-        <td class="px-5 py-3 text-slate-600 whitespace-nowrap text-xs">
+        <td class="px-5 py-3.5 text-slate-600 whitespace-nowrap text-xs">
           ${formatDate(tx.date)}
         </td>
-        <td class="px-5 py-3 font-mono font-medium text-slate-800 text-xs">
-          ${tx.noSJ ? tx.noSJ : '<span class="text-slate-300">-</span>'}
+        <td class="px-5 py-3.5 font-mono font-medium text-slate-700 text-xs">
+          ${tx.noSJ ? tx.noSJ : '<span class="text-slate-400">-</span>'}
         </td>
-        <td class="px-5 py-3 text-center text-slate-900 font-bold text-xs">
+        <td class="px-5 py-3.5 text-center text-slate-800 font-medium text-xs">
           ${sent > 0 ? sent : '-'}
         </td>
-        <td class="px-5 py-3 text-center text-slate-600 font-medium text-xs">
+        <td class="px-5 py-3.5 text-center text-slate-600 font-medium text-xs">
           ${returned > 0 ? returned : '-'}
         </td>
-        <td class="px-5 py-3 text-center font-bold text-xs">
-          <span class="inline-flex items-center justify-center min-w-[26px] px-2 py-0.5 rounded-full ${runningBalance === 0 ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-700'
-        }">${runningBalance}</span>
+        <td class="px-5 py-3.5 text-center font-bold text-xs">
+          <span class="inline-flex items-center justify-center min-w-[28px] h-6 px-2 text-xs font-semibold rounded bg-slate-100 text-slate-700 border border-slate-200/70">${runningBalance}</span>
         </td>
-        <td class="px-5 py-3 text-xs text-slate-400">
+        <td class="px-5 py-3.5 text-xs text-slate-500">
           ${tx.note || '-'}
         </td>
-        <td class="px-5 py-3 text-center">
-          <button onclick="deleteTransaction('${tx.id}')" class="text-slate-400 hover:text-rose-600 transition p-1 rounded-md" title="Hapus Mutasi">
+        <td class="px-5 py-3.5 text-center">
+          <button onclick="deleteTransaction('${tx.id}')" class="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition rounded-md" title="Hapus Mutasi">
             <i data-lucide="trash-2" class="w-4 h-4 inline"></i>
           </button>
         </td>
@@ -754,34 +743,34 @@ function viewCustomerDetail(customerId) {
       tbody.appendChild(tr);
     }
 
-    // 2. Tampilan Khusus Layar HP (Mobile Timeline Card)
+    // 2. Tampilan Khusus Layar HP (Mobile Timeline Card - Clean Neutral)
     if (mobileList) {
       const card = document.createElement('div');
-      card.className = "p-3.5 hover:bg-slate-50/60 transition space-y-2";
+      card.className = "p-3.5 hover:bg-slate-50/70 transition space-y-2";
       card.innerHTML = `
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-2">
-            <span class="text-xs font-bold text-slate-900">${formatDate(tx.date)}</span>
-            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium ${tx.noSJ ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'text-slate-400'}">
+            <span class="text-xs font-semibold text-slate-900">${formatDate(tx.date)}</span>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium ${tx.noSJ ? 'bg-slate-100 text-slate-700 border border-slate-200/70' : 'text-slate-400'}">
               ${tx.noSJ ? 'SJ: ' + tx.noSJ : 'Tanpa SJ'}
             </span>
           </div>
           <div class="flex items-center gap-2">
-            <span class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 text-xs font-bold rounded-full ${runningBalance === 0 ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-800'}">
+            <span class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 text-xs font-semibold rounded bg-slate-100 text-slate-700 border border-slate-200/70">
               Sisa: ${runningBalance}
             </span>
-            <button onclick="deleteTransaction('${tx.id}')" class="p-1 text-slate-400 hover:text-rose-600 rounded-md transition" title="Hapus Mutasi">
+            <button onclick="deleteTransaction('${tx.id}')" class="p-1 text-slate-400 hover:text-slate-700 rounded-md transition" title="Hapus Mutasi">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
           </div>
         </div>
         <div class="flex items-center gap-3 text-xs pt-0.5">
-          <div class="flex items-center gap-1 font-semibold ${sent > 0 ? 'text-blue-600' : 'text-slate-400'}">
-            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+          <div class="flex items-center gap-1 font-medium text-slate-700">
+            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-slate-400"></i>
             <span>Kirim: ${sent > 0 ? sent : '0'}</span>
           </div>
-          <div class="flex items-center gap-1 font-semibold ${returned > 0 ? 'text-slate-700' : 'text-slate-400'}">
-            <i data-lucide="corner-down-left" class="w-3.5 h-3.5"></i>
+          <div class="flex items-center gap-1 font-medium text-slate-700">
+            <i data-lucide="corner-down-left" class="w-3.5 h-3.5 text-slate-400"></i>
             <span>Kembali: ${returned > 0 ? returned : '0'}</span>
           </div>
           ${tx.note ? `<span class="text-[11px] text-slate-400 truncate ml-auto">${tx.note}</span>` : ''}
@@ -1119,7 +1108,7 @@ function printCustomerReport(customerId) {
         <td colspan="3" class="px-3 py-2 text-right uppercase tracking-wider text-slate-700">Total Mutasi & Sisa Akhir:</td>
         <td class="px-3 py-2 text-center font-bold text-slate-900">${stats.totalSent}</td>
         <td class="px-3 py-2 text-center font-bold text-slate-900">${stats.totalReturned}</td>
-        <td class="px-3 py-2 text-center font-black text-blue-700 bg-blue-50">${stats.balance}</td>
+        <td class="px-3 py-2 text-center font-bold text-slate-900 bg-slate-100">${stats.balance}</td>
         <td class="px-3 py-2 text-slate-500 font-normal">Sisa Pinjaman Aktif</td>
       </tr>
     `;
