@@ -258,12 +258,24 @@ function initData() {
           t.date = normalizeDate(t.date);
         });
       }
+      if ((!appState.customers || appState.customers.length === 0) && typeof DEFAULT_DATA !== 'undefined' && DEFAULT_DATA.customers && DEFAULT_DATA.customers.length > 0) {
+        appState.customers = [...DEFAULT_DATA.customers];
+        appState.transactions = [...DEFAULT_DATA.transactions];
+      }
     } catch (e) {
-      appState = { customers: [], transactions: [], currentCustomerId: null };
+      appState = {
+        customers: (typeof DEFAULT_DATA !== 'undefined' && DEFAULT_DATA.customers) ? [...DEFAULT_DATA.customers] : [],
+        transactions: (typeof DEFAULT_DATA !== 'undefined' && DEFAULT_DATA.transactions) ? [...DEFAULT_DATA.transactions] : [],
+        currentCustomerId: null
+      };
     }
   } else {
-    // Mulai bersih, biarkan Google Sheet yang mengisi
-    appState = { customers: [], transactions: [], currentCustomerId: null };
+    // Gunakan DEFAULT_DATA dari data.js sebagai data awal
+    appState = {
+      customers: (typeof DEFAULT_DATA !== 'undefined' && DEFAULT_DATA.customers) ? [...DEFAULT_DATA.customers] : [],
+      transactions: (typeof DEFAULT_DATA !== 'undefined' && DEFAULT_DATA.transactions) ? [...DEFAULT_DATA.transactions] : [],
+      currentCustomerId: null
+    };
   }
   populateCustomerDropdown();
   renderAll();
