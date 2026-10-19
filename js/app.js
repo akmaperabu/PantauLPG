@@ -190,7 +190,7 @@ async function fetchFromGoogleSheets(isManual = false) {
       appState.transactions = (data.transactions || []).map(t => ({
         id: String(t.id || ''),
         customerId: String(t.customerId || ''),
-        date: String(t.date || '').slice(0, 10),
+        date: normalizeDate(t.date),
         noSJ: String(t.noSJ || ''),
         sent: Number(t.sent || 0),
         returned: Number(t.returned || 0),
@@ -253,6 +253,11 @@ function initData() {
   if (saved) {
     try {
       appState = JSON.parse(saved);
+      if (Array.isArray(appState.transactions)) {
+        appState.transactions.forEach(t => {
+          t.date = normalizeDate(t.date);
+        });
+      }
     } catch (e) {
       appState = { customers: [], transactions: [], currentCustomerId: null };
     }
@@ -271,20 +276,73 @@ function saveToLocalStorage() {
   localStorage.setItem('pinjam_barang_db', JSON.stringify(appState));
 }
 
+// HELPER MENDAPATKAN TANGGAL HARI INI (LOKAL: YYYY-MM-DD)
+function getTodayDateString() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+// HELPER NORMALISASI TANGGAL KE FORMAT YYYY-MM-DD (MENCEGAH BUG PERGESERAN HARI KARENA TIMEZONE)
+function normalizeDate(rawDate) {
+  if (!rawDate) return "";
+  const str = String(rawDate).trim();
+
+  // Jika sudah format YYYY-MM-DD murni (contoh: "2025-03-01")
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return str;
+  }
+
+  // Jika format ISO string dari Google Sheet (contoh: "2025-02-28T16:00:00.000Z")
+  if (str.includes('T')) {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+    return str.slice(0, 10);
+  }
+
+  // Jika format DD/MM/YYYY (contoh: "01/03/2025")
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
+    const parts = str.split('/');
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    return `${year}-${month}-${day}`;
+  }
+
+  // Fallback parsing date umum
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  return str.slice(0, 10);
+}
+
 // DATE FORMATTER (DD-MMM-YY / e.g. 10-May-24)
 function formatDate(dateStr) {
   if (!dateStr) return "-";
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
+  
+  const normalized = normalizeDate(dateStr);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    const parts = normalized.split('-');
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = months[d.getMonth()];
-    const year = String(d.getFullYear()).slice(-2);
-    return `${day}-${month}-${year}`;
-  } catch (e) {
-    return dateStr;
+    const monthIdx = parseInt(parts[1], 10) - 1;
+    const monthName = months[monthIdx] || parts[1];
+    const shortYear = parts[0].slice(-2);
+    return `${parts[2]}-${monthName}-${shortYear}`;
   }
+
+  return dateStr;
 }
 
 // STATS CALCULATIONS FOR A CUSTOMER
@@ -296,7 +354,7 @@ function calculateCustomerStats(customerId) {
   let lastDate = "";
 
   // Sort by date chronologically
-  txs.sort((a, b) => new Date(a.date) - new Date(b.date));
+  txs.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
   txs.forEach(t => {
     totalSent += Number(t.sent || 0);
@@ -629,7 +687,7 @@ function viewCustomerDetail(customerId) {
 
   // Ambil transaksi customer ini dan urutkan tanggal
   const txs = appState.transactions.filter(t => t.customerId === customerId);
-  txs.sort((a, b) => new Date(a.date) - new Date(b.date));
+  txs.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
   const tbody = document.getElementById('detailMutationTableBody');
   const mobileList = document.getElementById('detailMutationMobileList');
@@ -794,7 +852,7 @@ function openModal(id) {
   if (id === 'modalAddTransaction') {
     const dateInput = document.getElementById('txDate');
     if (dateInput && !dateInput.value) {
-      dateInput.value = new Date().toISOString().split('T')[0];
+      dateInput.value = getTodayDateString();
     }
     if (appState.currentCustomerId) {
       const custSelect = document.getElementById('txCustomerId');
@@ -916,7 +974,7 @@ function handleSaveTransaction(e) {
   const newTx = {
     id: "t_" + Date.now(),
     customerId: customerId,
-    date: date,
+    date: normalizeDate(date),
     noSJ: noSJ,
     sent: sent,
     returned: returned,
@@ -1008,7 +1066,7 @@ function printCustomerReport(customerId) {
 
   const stats = calculateCustomerStats(targetId);
   const txs = appState.transactions.filter(t => t.customerId === targetId);
-  txs.sort((a, b) => new Date(a.date) - new Date(b.date));
+  txs.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
   // Populate nama customer
   const nameEl = document.getElementById('printCustomerName');
