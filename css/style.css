@@ -75,18 +75,26 @@ tbody tr {
   animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* Print Media Styles untuk Laporan Simpel */
+/* Print Media Styles untuk Laporan Simpel & Rapi */
 @media print {
+  html,
   body {
     background-color: #ffffff !important;
     color: #0f172a !important;
     padding: 0 !important;
     margin: 0 !important;
+    min-height: auto !important;
+    height: auto !important;
+    display: block !important;
+    position: static !important;
   }
 
-  /* Sembunyikan elemen website yang tidak perlu dicetak */
+  /* Sembunyikan seluruh UI web aplikasi saat mencetak */
+  #loginScreen,
+  #appContainer,
   header,
   main,
+  footer,
   #modalAddCustomer,
   #modalAddTransaction,
   button,
@@ -94,12 +102,19 @@ tbody tr {
     display: none !important;
   }
 
-  /* Tampilkan template cetak */
+  /* Pastikan hanya template laporan yang tampil dan mulai dari paling atas */
   #printableCustomerReport {
     display: block !important;
+    position: static !important;
     width: 100% !important;
-    padding: 10mm 12mm !important;
+    max-width: 100% !important;
+    padding: 0 !important;
     margin: 0 !important;
+  }
+
+  .print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
   }
 
   .print-table th {
@@ -122,7 +137,8 @@ tbody tr {
   }
 
   @page {
-    size: auto;
-    margin: 10mm;
+    size: A4 portrait;
+    margin: 15mm 15mm 15mm 15mm;
   }
 }
+
