@@ -55,6 +55,26 @@ tbody tr {
   scrollbar-width: none;
 }
 
+/* Mobile responsive enhancements */
+@media (max-width: 640px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  input, select, textarea {
+    font-size: 14px !important; /* Prevents auto-zoom on iOS */
+  }
+}
+
+/* Shake animation for invalid password entry */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+.animate-shake {
+  animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
 /* Print Media Styles untuk Laporan Simpel */
 @media print {
   body {

@@ -1,6 +1,118 @@
 // GOOGLE SHEETS API CONFIGURATION
 const GSHEET_API_URL = "https://script.google.com/macros/s/AKfycbwmsMfcIs95PMlrg2FUsodkGmmW76XmkdAFWcNK4rMQHv_qTH0vG95W8gFd4Hjl-wtwpg/exec";
 
+// AUTHENTICATION CONFIG & LOGIC
+const ALLOWED_PASSWORDS = ["Okg@2026", "Okg@2026."];
+const AUTH_STORAGE_KEY = "pantau_lpg_auth";
+
+function checkAuthentication() {
+  const isAuthLocal = localStorage.getItem(AUTH_STORAGE_KEY) === "authorized";
+  const isAuthSession = sessionStorage.getItem(AUTH_STORAGE_KEY) === "authorized";
+  return isAuthLocal || isAuthSession;
+}
+
+function initAuth() {
+  const loginScreen = document.getElementById('loginScreen');
+  const appContainer = document.getElementById('appContainer');
+
+  if (checkAuthentication()) {
+    if (loginScreen) loginScreen.classList.add('hidden');
+    if (appContainer) appContainer.classList.remove('hidden');
+    initData();
+  } else {
+    if (loginScreen) {
+      loginScreen.classList.remove('hidden');
+      const passInput = document.getElementById('loginPasswordInput');
+      if (passInput) setTimeout(() => passInput.focus(), 250);
+    }
+    if (appContainer) {
+      appContainer.classList.add('hidden');
+    }
+  }
+}
+
+function handleLoginSubmit(event) {
+  if (event) event.preventDefault();
+  const inputEl = document.getElementById('loginPasswordInput');
+  const errorEl = document.getElementById('loginErrorMessage');
+  const loginCard = document.getElementById('loginCard');
+  const rememberCheckbox = document.getElementById('rememberMeCheckbox');
+  const enteredPass = inputEl ? inputEl.value.trim() : '';
+
+  if (ALLOWED_PASSWORDS.includes(enteredPass)) {
+    if (errorEl) errorEl.classList.add('hidden');
+
+    if (rememberCheckbox && rememberCheckbox.checked) {
+      localStorage.setItem(AUTH_STORAGE_KEY, "authorized");
+    } else {
+      sessionStorage.setItem(AUTH_STORAGE_KEY, "authorized");
+    }
+
+    const loginScreen = document.getElementById('loginScreen');
+    const appContainer = document.getElementById('appContainer');
+
+    if (loginScreen) {
+      loginScreen.classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        loginScreen.classList.add('hidden');
+        loginScreen.classList.remove('opacity-0', 'pointer-events-none');
+      }, 300);
+    }
+
+    if (appContainer) {
+      appContainer.classList.remove('hidden');
+    }
+
+    initData();
+    showToast("Akses berhasil dibuka. Selamat datang!");
+    if (window.lucide) lucide.createIcons();
+  } else {
+    if (errorEl) {
+      errorEl.classList.remove('hidden');
+    }
+    if (loginCard) {
+      loginCard.classList.remove('animate-shake');
+      void loginCard.offsetWidth; // re-trigger animation
+      loginCard.classList.add('animate-shake');
+    }
+    if (inputEl) {
+      inputEl.classList.add('border-rose-400', 'bg-rose-50/40');
+      inputEl.focus();
+      inputEl.select();
+    }
+  }
+}
+
+function clearLoginError() {
+  const errorEl = document.getElementById('loginErrorMessage');
+  const inputEl = document.getElementById('loginPasswordInput');
+  if (errorEl) errorEl.classList.add('hidden');
+  if (inputEl) inputEl.classList.remove('border-rose-400', 'bg-rose-50/40');
+}
+
+function togglePasswordVisibility() {
+  const inputEl = document.getElementById('loginPasswordInput');
+  const iconEl = document.getElementById('passwordToggleIcon');
+  if (!inputEl) return;
+
+  if (inputEl.type === 'password') {
+    inputEl.type = 'text';
+    if (iconEl) iconEl.setAttribute('data-lucide', 'eye-off');
+  } else {
+    inputEl.type = 'password';
+    if (iconEl) iconEl.setAttribute('data-lucide', 'eye');
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function handleLogout() {
+  if (confirm("Kunci aplikasi dan keluar dari sistem?")) {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    window.location.reload();
+  }
+}
+
 // STATE MANAGEMENT
 let appState = {
   customers: [],
@@ -219,15 +331,15 @@ function renderGlobalStats() {
   if (elBal) elBal.innerText = gBalance.toLocaleString();
 }
 
-// RENDER CUSTOMER LIST (GAMBAR 1 DENGAN PAGINASI LENGKAP)
+// RENDER CUSTOMER LIST (DESKTOP TABLE & MOBILE CARDS FEED DENGAN PAGINASI)
 function renderCustomerList() {
   const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
   const statusFilter = document.getElementById('statusFilter')?.value || 'all';
   const tbody = document.getElementById('customerTableBody');
-  const emptyState = document.getElementById('emptyCustomerState');
+  const mobileList = document.getElementById('customerMobileList');
 
-  if (!tbody) return;
-  tbody.innerHTML = '';
+  if (tbody) tbody.innerHTML = '';
+  if (mobileList) mobileList.innerHTML = '';
 
   // Filter customers based on search and status
   let filtered = appState.customers.filter(c => {
@@ -240,15 +352,24 @@ function renderCustomerList() {
     return true;
   });
 
-  // Jika data kosong, tampilkan baris tabel bersih
+  // Jika data kosong, tampilkan baris/pesan bersih
   if (filtered.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" class="px-5 py-8 text-center text-xs text-slate-400">
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="px-5 py-8 text-center text-xs text-slate-400">
+            Belum ada data customer
+          </td>
+        </tr>
+      `;
+    }
+    if (mobileList) {
+      mobileList.innerHTML = `
+        <div class="px-4 py-8 text-center text-xs text-slate-400">
           Belum ada data customer
-        </td>
-      </tr>
-    `;
+        </div>
+      `;
+    }
     renderPaginationControls(0, 0, 0, 1);
     return;
   }
@@ -273,7 +394,7 @@ function renderCustomerList() {
   paginatedData.forEach((cust) => {
     const stats = calculateCustomerStats(cust.id);
 
-    // Badge sisa styling (persis screenshot: 0 = abu-abu pill, > 0 = kuning/amber pill)
+    // Badge sisa styling (0 = abu-abu pill, > 0 = kuning/amber pill)
     let sisaBadgeHtml = "";
     if (stats.balance === 0) {
       sisaBadgeHtml = `<span class="inline-flex items-center justify-center min-w-[28px] h-6 px-2.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-500">0</span>`;
@@ -283,43 +404,96 @@ function renderCustomerList() {
       sisaBadgeHtml = `<span class="inline-flex items-center justify-center min-w-[28px] h-6 px-2.5 text-xs font-bold rounded-full bg-rose-100 text-rose-700">${stats.balance}</span>`;
     }
 
-    const tr = document.createElement('tr');
-    tr.className = "hover:bg-slate-50/70 transition border-b border-slate-100 group";
+    // 1. Tampilan Desktop Table
+    if (tbody) {
+      const tr = document.createElement('tr');
+      tr.className = "hover:bg-slate-50/70 transition border-b border-slate-100 group";
+      tr.innerHTML = `
+        <td class="px-5 py-3.5">
+          <button onclick="viewCustomerDetail('${cust.id}')" class="font-bold text-blue-600 hover:text-blue-700 hover:underline text-left text-xs uppercase tracking-tight">
+            ${cust.name}
+          </button>
+        </td>
+        <td class="px-5 py-3.5 text-center text-slate-600 text-xs font-normal">
+          ${formatDate(stats.lastDate)}
+        </td>
+        <td class="px-5 py-3.5 text-center font-bold text-slate-900 text-xs">
+          ${stats.totalSent}
+        </td>
+        <td class="px-5 py-3.5 text-center font-medium text-slate-700 text-xs">
+          ${stats.totalReturned}
+        </td>
+        <td class="px-5 py-3.5 text-center">
+          ${sisaBadgeHtml}
+        </td>
+        <td class="px-5 py-3.5 text-xs text-slate-400">
+          ${cust.notes || '-'}
+        </td>
+        <td class="px-5 py-3.5 text-right whitespace-nowrap">
+          <button onclick="printCustomerReport('${cust.id}')" class="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg transition inline-flex items-center mr-1" title="Cetak Rekap / PDF">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+          </button>
+          <button onclick="viewCustomerDetail('${cust.id}')" class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition inline-flex items-center gap-1 mr-1">
+            Buka Transaksi &rarr;
+          </button>
+          <button onclick="deleteCustomer('${cust.id}')" class="delete-btn p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition inline-flex items-center" title="Hapus Customer">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
 
-    tr.innerHTML = `
-      <td class="px-5 py-3.5">
-        <button onclick="viewCustomerDetail('${cust.id}')" class="font-bold text-blue-600 hover:text-blue-700 hover:underline text-left text-xs uppercase tracking-tight">
-          ${cust.name}
-        </button>
-      </td>
-      <td class="px-5 py-3.5 text-center text-slate-600 text-xs font-normal">
-        ${formatDate(stats.lastDate)}
-      </td>
-      <td class="px-5 py-3.5 text-center font-bold text-slate-900 text-xs">
-        ${stats.totalSent}
-      </td>
-      <td class="px-5 py-3.5 text-center font-medium text-slate-700 text-xs">
-        ${stats.totalReturned}
-      </td>
-      <td class="px-5 py-3.5 text-center">
-        ${sisaBadgeHtml}
-      </td>
-      <td class="px-5 py-3.5 text-xs text-slate-400">
-        ${cust.notes || '-'}
-      </td>
-      <td class="px-5 py-3.5 text-right whitespace-nowrap">
-        <button onclick="printCustomerReport('${cust.id}')" class="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg transition inline-flex items-center mr-1" title="Cetak Rekap / PDF">
-          <i data-lucide="printer" class="w-4 h-4"></i>
-        </button>
-        <button onclick="viewCustomerDetail('${cust.id}')" class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition inline-flex items-center gap-1 mr-1">
-          Buka Transaksi &rarr;
-        </button>
-        <button onclick="deleteCustomer('${cust.id}')" class="delete-btn p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition inline-flex items-center" title="Hapus Customer">
-          <i data-lucide="trash-2" class="w-4 h-4"></i>
-        </button>
-      </td>
-    `;
-    tbody.appendChild(tr);
+    // 2. Tampilan Khusus Layar HP (Mobile Card Feed)
+    if (mobileList) {
+      const card = document.createElement('div');
+      card.className = "p-3.5 hover:bg-slate-50/70 transition space-y-2.5";
+      card.innerHTML = `
+        <div class="flex items-start justify-between gap-2.5">
+          <div class="min-w-0 flex-1">
+            <button onclick="viewCustomerDetail('${cust.id}')" class="font-bold text-slate-900 hover:text-blue-600 text-left text-sm tracking-tight truncate block w-full">
+              ${cust.name}
+            </button>
+            <p class="text-[11px] text-slate-400 mt-0.5 truncate">${cust.notes || 'Tidak ada catatan'}</p>
+          </div>
+          <div class="shrink-0 flex items-center gap-1.5">
+            <span class="text-[10px] text-slate-400 font-medium">Sisa:</span>
+            ${sisaBadgeHtml}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-1.5 p-2 rounded-lg bg-slate-50/90 border border-slate-100 text-center">
+          <div>
+            <span class="text-[9px] font-semibold text-slate-400 block uppercase tracking-wider">Kirim</span>
+            <span class="text-xs font-bold text-slate-900 mt-0.5 block">${stats.totalSent}</span>
+          </div>
+          <div class="border-x border-slate-200/70">
+            <span class="text-[9px] font-semibold text-slate-400 block uppercase tracking-wider">Kembali</span>
+            <span class="text-xs font-semibold text-slate-700 mt-0.5 block">${stats.totalReturned}</span>
+          </div>
+          <div>
+            <span class="text-[9px] font-semibold text-slate-400 block uppercase tracking-wider">Terakhir</span>
+            <span class="text-[10px] font-medium text-slate-600 mt-0.5 block truncate">${formatDate(stats.lastDate)}</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 pt-0.5">
+          <button onclick="viewCustomerDetail('${cust.id}')" class="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50/80 hover:bg-blue-100 transition">
+            <span>Buka Transaksi </span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </button>
+          <div class="flex items-center gap-1 shrink-0">
+            <button onclick="printCustomerReport('${cust.id}')" class="p-1.5 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition" title="Cetak Rekap">
+              <i data-lucide="printer" class="w-4 h-4"></i>
+            </button>
+            <button onclick="deleteCustomer('${cust.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Hapus Customer">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      `;
+      mobileList.appendChild(card);
+    }
   });
 
   // Update Pagination UI
@@ -358,8 +532,8 @@ function renderPaginationControls(totalItems, startIndex, endIndex, totalPages) 
   const prevBtn = document.createElement('button');
   prevBtn.disabled = paginationState.currentPage === 1;
   prevBtn.className = `p-1.5 rounded-md border border-slate-200 transition ${paginationState.currentPage === 1
-      ? 'text-slate-300 border-slate-100 cursor-not-allowed'
-      : 'text-slate-600 hover:bg-slate-50 cursor-pointer'
+    ? 'text-slate-300 border-slate-100 cursor-not-allowed'
+    : 'text-slate-600 hover:bg-slate-50 cursor-pointer'
     }`;
   prevBtn.innerHTML = `<i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>`;
   prevBtn.onclick = () => {
@@ -377,8 +551,8 @@ function renderPaginationControls(totalItems, startIndex, endIndex, totalPages) 
       const pageBtn = document.createElement('button');
       const isActive = i === paginationState.currentPage;
       pageBtn.className = `min-w-[32px] h-8 px-2 text-xs rounded-md border font-medium transition ${isActive
-          ? 'bg-white border-slate-300 text-slate-900 font-bold shadow-xs'
-          : 'bg-transparent border-transparent text-slate-600 hover:bg-slate-100'
+        ? 'bg-white border-slate-300 text-slate-900 font-bold shadow-xs'
+        : 'bg-transparent border-transparent text-slate-600 hover:bg-slate-100'
         }`;
       pageBtn.innerText = i;
       pageBtn.onclick = () => {
@@ -401,8 +575,8 @@ function renderPaginationControls(totalItems, startIndex, endIndex, totalPages) 
   const nextBtn = document.createElement('button');
   nextBtn.disabled = paginationState.currentPage === totalPages;
   nextBtn.className = `p-1.5 rounded-md border border-slate-200 transition ${paginationState.currentPage === totalPages
-      ? 'text-slate-300 border-slate-100 cursor-not-allowed'
-      : 'text-slate-600 hover:bg-slate-50 cursor-pointer'
+    ? 'text-slate-300 border-slate-100 cursor-not-allowed'
+    : 'text-slate-600 hover:bg-slate-50 cursor-pointer'
     }`;
   nextBtn.innerHTML = `<i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>`;
   nextBtn.onclick = () => {
@@ -458,17 +632,28 @@ function viewCustomerDetail(customerId) {
   txs.sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const tbody = document.getElementById('detailMutationTableBody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
+  const mobileList = document.getElementById('detailMutationMobileList');
+
+  if (tbody) tbody.innerHTML = '';
+  if (mobileList) mobileList.innerHTML = '';
 
   if (txs.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" class="px-5 py-8 text-center text-xs text-slate-400">
-          Belum ada riwayat transaksi
-        </td>
-      </tr>
-    `;
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="px-5 py-8 text-center text-xs text-slate-400">
+            Belum ada riwayat transaksi
+          </td>
+        </tr>
+      `;
+    }
+    if (mobileList) {
+      mobileList.innerHTML = `
+        <div class="px-4 py-8 text-center text-xs text-slate-400">
+          Belum ada riwayat transaksi untuk pelanggan ini.
+        </div>
+      `;
+    }
     return;
   }
 
@@ -478,35 +663,74 @@ function viewCustomerDetail(customerId) {
     const returned = Number(tx.returned || 0);
     runningBalance += (sent - returned);
 
-    const tr = document.createElement('tr');
-    tr.className = "hover:bg-slate-50/60 transition border-b border-slate-100";
-    tr.innerHTML = `
-      <td class="px-5 py-3 text-slate-600 whitespace-nowrap text-xs">
-        ${formatDate(tx.date)}
-      </td>
-      <td class="px-5 py-3 font-mono font-medium text-slate-800 text-xs">
-        ${tx.noSJ ? tx.noSJ : '<span class="text-slate-300">-</span>'}
-      </td>
-      <td class="px-5 py-3 text-center text-slate-900 font-bold text-xs">
-        ${sent > 0 ? sent : '-'}
-      </td>
-      <td class="px-5 py-3 text-center text-slate-600 font-medium text-xs">
-        ${returned > 0 ? returned : '-'}
-      </td>
-      <td class="px-5 py-3 text-center font-bold text-xs">
-        <span class="inline-flex items-center justify-center min-w-[26px] px-2 py-0.5 rounded-full ${runningBalance === 0 ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-700'
-      }">${runningBalance}</span>
-      </td>
-      <td class="px-5 py-3 text-xs text-slate-400">
-        ${tx.note || '-'}
-      </td>
-      <td class="px-5 py-3 text-center">
-        <button onclick="deleteTransaction('${tx.id}')" class="text-slate-400 hover:text-rose-600 transition p-1 rounded-md" title="Hapus Mutasi">
-          <i data-lucide="trash-2" class="w-4 h-4 inline"></i>
-        </button>
-      </td>
-    `;
-    tbody.appendChild(tr);
+    // 1. Tampilan Desktop Table
+    if (tbody) {
+      const tr = document.createElement('tr');
+      tr.className = "hover:bg-slate-50/60 transition border-b border-slate-100";
+      tr.innerHTML = `
+        <td class="px-5 py-3 text-slate-600 whitespace-nowrap text-xs">
+          ${formatDate(tx.date)}
+        </td>
+        <td class="px-5 py-3 font-mono font-medium text-slate-800 text-xs">
+          ${tx.noSJ ? tx.noSJ : '<span class="text-slate-300">-</span>'}
+        </td>
+        <td class="px-5 py-3 text-center text-slate-900 font-bold text-xs">
+          ${sent > 0 ? sent : '-'}
+        </td>
+        <td class="px-5 py-3 text-center text-slate-600 font-medium text-xs">
+          ${returned > 0 ? returned : '-'}
+        </td>
+        <td class="px-5 py-3 text-center font-bold text-xs">
+          <span class="inline-flex items-center justify-center min-w-[26px] px-2 py-0.5 rounded-full ${runningBalance === 0 ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-700'
+        }">${runningBalance}</span>
+        </td>
+        <td class="px-5 py-3 text-xs text-slate-400">
+          ${tx.note || '-'}
+        </td>
+        <td class="px-5 py-3 text-center">
+          <button onclick="deleteTransaction('${tx.id}')" class="text-slate-400 hover:text-rose-600 transition p-1 rounded-md" title="Hapus Mutasi">
+            <i data-lucide="trash-2" class="w-4 h-4 inline"></i>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    // 2. Tampilan Khusus Layar HP (Mobile Timeline Card)
+    if (mobileList) {
+      const card = document.createElement('div');
+      card.className = "p-3.5 hover:bg-slate-50/60 transition space-y-2";
+      card.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-900">${formatDate(tx.date)}</span>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium ${tx.noSJ ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'text-slate-400'}">
+              ${tx.noSJ ? 'SJ: ' + tx.noSJ : 'Tanpa SJ'}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 text-xs font-bold rounded-full ${runningBalance === 0 ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-800'}">
+              Sisa: ${runningBalance}
+            </span>
+            <button onclick="deleteTransaction('${tx.id}')" class="p-1 text-slate-400 hover:text-rose-600 rounded-md transition" title="Hapus Mutasi">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 text-xs pt-0.5">
+          <div class="flex items-center gap-1 font-semibold ${sent > 0 ? 'text-blue-600' : 'text-slate-400'}">
+            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+            <span>Kirim: ${sent > 0 ? sent : '0'}</span>
+          </div>
+          <div class="flex items-center gap-1 font-semibold ${returned > 0 ? 'text-slate-700' : 'text-slate-400'}">
+            <i data-lucide="corner-down-left" class="w-3.5 h-3.5"></i>
+            <span>Kembali: ${returned > 0 ? returned : '0'}</span>
+          </div>
+          ${tx.note ? `<span class="text-[11px] text-slate-400 truncate ml-auto">${tx.note}</span>` : ''}
+        </div>
+      `;
+      mobileList.appendChild(card);
+    }
   });
 
   // Switch view
@@ -851,7 +1075,7 @@ function printCustomerReport(customerId) {
 
 // ON LOAD INITIALIZATION
 window.addEventListener('DOMContentLoaded', () => {
-  initData();
+  initAuth();
   if (window.lucide) {
     lucide.createIcons();
   }
